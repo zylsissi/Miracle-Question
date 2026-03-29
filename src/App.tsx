@@ -28,16 +28,38 @@ interface AppState {
 }
 
 export default function App() {
-  const [lang, setLang] = useState<Language>('en');
+  const [lang, setLang] = useState<Language>(() => {
+    const saved = localStorage.getItem('miracle_lang');
+    return (saved as Language) || 'en';
+  });
   const [step, setStep] = useState<Step>('intro');
-  const [state, setState] = useState<AppState>({
-    miracleDescription: '',
-    currentScore: 5,
-    signsOfChange: '',
-    fivePercentAction: '',
-    aiFeedback: '',
+  const [state, setState] = useState<AppState>(() => {
+    const saved = localStorage.getItem('miracle_state');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved state', e);
+      }
+    }
+    return {
+      miracleDescription: '',
+      currentScore: 5,
+      signsOfChange: '',
+      fivePercentAction: '',
+      aiFeedback: '',
+    };
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditingVision, setIsEditingVision] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('miracle_lang', lang);
+  }, [lang]);
+
+  useEffect(() => {
+    localStorage.setItem('miracle_state', JSON.stringify(state));
+  }, [state]);
 
   const t = translations[lang];
 
@@ -57,19 +79,25 @@ export default function App() {
   };
 
   const reset = () => {
-    setStep('intro');
-    setState({
-      miracleDescription: '',
-      currentScore: 5,
-      signsOfChange: '',
-      fivePercentAction: '',
-      aiFeedback: '',
-    });
+    if (window.confirm(lang === 'zh' ? '确定要重置所有记录吗？' : 'Are you sure you want to reset all records?')) {
+      setStep('intro');
+      const newState = {
+        miracleDescription: '',
+        currentScore: 5,
+        signsOfChange: '',
+        fivePercentAction: '',
+        aiFeedback: '',
+      };
+      setState(newState);
+      localStorage.removeItem('miracle_state');
+    }
   };
 
   const toggleLang = () => {
     setLang(prev => prev === 'en' ? 'zh' : 'en');
   };
+
+  const hasData = state.miracleDescription.trim().length > 0;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8 selection:bg-accent/30">
@@ -86,7 +114,7 @@ export default function App() {
             <Languages size={16} />
             <span>{lang === 'en' ? '中文' : 'English'}</span>
           </button>
-          {step !== 'intro' && (
+          {hasData && (
             <button 
               onClick={reset}
               className="text-primary/60 hover:text-primary transition-colors flex items-center gap-1 text-sm font-medium"
@@ -108,21 +136,98 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="text-center space-y-8"
             >
-              <div className="space-y-4">
-                <h2 className="serif text-4xl md:text-6xl font-light leading-tight">
-                  {t.intro.title}
-                </h2>
-                <p className="text-foreground/70 text-lg max-w-md mx-auto leading-relaxed">
-                  {t.intro.description}
-                </p>
-              </div>
-              <button 
-                onClick={() => nextStep('miracle')}
-                className="btn-primary group flex items-center gap-2 mx-auto"
-              >
-                {t.intro.button}
-                <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
-              </button>
+              {!hasData ? (
+                <>
+                  <div className="space-y-4">
+                    <h2 className="serif text-4xl md:text-6xl font-light leading-tight">
+                      {t.intro.title}
+                    </h2>
+                    <p className="text-foreground/70 text-lg max-w-md mx-auto leading-relaxed">
+                      {t.intro.description}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => nextStep('miracle')}
+                    className="btn-primary group flex items-center gap-2 mx-auto"
+                  >
+                    {t.intro.button}
+                    <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-8 text-left">
+                  <div className="text-center space-y-2">
+                    <h2 className="serif text-3xl font-medium italic">
+                      {lang === 'zh' ? '欢迎回来' : 'Welcome Back'}
+                    </h2>
+                    <p className="text-foreground/60">
+                      {lang === 'zh' ? '奇迹的种子正在生长。你可以随时调整你的愿景或更新现状。' : 'The seeds of your miracle are growing. You can adjust your vision or update the present anytime.'}
+                    </p>
+                  </div>
+
+                  <div className="bg-white p-8 rounded-[2rem] border border-primary/10 shadow-sm space-y-6">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-bold text-accent uppercase tracking-widest">{t.summary.vision}</h4>
+                        <button 
+                          onClick={() => setIsEditingVision(!isEditingVision)}
+                          className="text-primary/40 hover:text-primary text-xs font-medium underline underline-offset-4"
+                        >
+                          {isEditingVision ? (lang === 'zh' ? '完成' : 'Done') : (lang === 'zh' ? '修改' : 'Edit')}
+                        </button>
+                      </div>
+                      {isEditingVision ? (
+                        <textarea
+                          value={state.miracleDescription}
+                          onChange={(e) => setState({ ...state, miracleDescription: e.target.value })}
+                          className="w-full h-32 p-4 rounded-xl bg-muted/30 border border-primary/10 focus:border-primary/30 focus:ring-0 transition-all resize-none text-base leading-relaxed"
+                        />
+                      ) : (
+                        <p className="text-lg text-primary/80 leading-relaxed italic">"{state.miracleDescription}"</p>
+                      )}
+                    </div>
+
+                    <div className="h-px bg-primary/5" />
+
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-bold text-accent uppercase tracking-widest">{t.summary.state}</h4>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-bold text-primary">{state.currentScore}</span>
+                          <span className="text-primary/40 text-xs">/ 10</span>
+                        </div>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        step="1"
+                        value={state.currentScore}
+                        onChange={(e) => setState({ ...state, currentScore: parseInt(e.target.value) })}
+                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <button 
+                      onClick={() => nextStep('signs')}
+                      className="btn-primary w-full flex items-center justify-center gap-2"
+                    >
+                      {lang === 'zh' ? '继续探索微小迹象' : 'Continue Exploring Signs'}
+                      <ArrowRight size={20} />
+                    </button>
+                    {state.fivePercentAction && (
+                      <button 
+                        onClick={() => nextStep('summary')}
+                        className="btn-secondary w-full flex items-center justify-center gap-2"
+                      >
+                        {lang === 'zh' ? '查看我的行动卡片' : 'View My Action Card'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -392,7 +497,7 @@ export default function App() {
                   {t.summary.save}
                 </button>
                 <button 
-                  onClick={reset}
+                  onClick={() => setStep('intro')}
                   className="btn-secondary w-full flex items-center justify-center gap-2"
                 >
                   {t.summary.new}

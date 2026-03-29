@@ -51,7 +51,7 @@ export const translations = {
       state: "Current State",
       action: "5% Action",
       save: "Save My Miracle Card",
-      new: "Start New Exploration"
+      new: "Back to Home"
     },
     footer: "Focus on the 5% change • Miracle Question"
   },
@@ -105,7 +105,7 @@ export const translations = {
       state: "当前状态",
       action: "5% 行动",
       save: "保存我的奇迹卡片",
-      new: "开启新的探索"
+      new: "返回首页"
     },
     footer: "关注 5% 的改变 • 奇迹提问"
   }
