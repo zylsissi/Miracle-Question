@@ -27,6 +27,21 @@ body {
   font-family: var(--font-serif);
 }
 
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  opacity: 0.1;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  opacity: 0.3;
+}
+
 .glass-card {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);

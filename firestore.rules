@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Document ID: {userId} (Auth UID)
+    // Fields:
+    //   - uid: string (required) - Auth UID
+    //   - miracleDescription: string (required) - Description of miracle
+    //   - currentScore: number (required) - Score 0-10
+    //   - signsOfChange: string - Signs of improvement
+    //   - fivePercentAction: string - Action plan
+    //   - updatedAt: timestamp - Last update
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'miracleDescription', 'currentScore']) &&
+             data.uid == request.auth.uid &&
+             data.miracleDescription is string && data.miracleDescription.size() <= 5000 &&
+             data.currentScore is number && data.currentScore >= 0 && data.currentScore <= 10 &&
+             (!('signsOfChange' in data) || (data.signsOfChange is string && data.signsOfChange.size() <= 5000)) &&
+             (!('fivePercentAction' in data) || (data.fivePercentAction is string && data.fivePercentAction.size() <= 1000));
+    }
+
+    function isValidJournalEntry(data) {
+      return data.keys().hasAll(['title', 'createdAt']) &&
+             data.title is string && data.title.size() <= 200 &&
+             (!('miracleDescription' in data) || (data.miracleDescription is string && data.miracleDescription.size() <= 5000)) &&
+             (!('currentScore' in data) || (data.currentScore is number)) &&
+             (!('signsOfChange' in data) || (data.signsOfChange is string && data.signsOfChange.size() <= 5000)) &&
+             (!('fivePercentAction' in data) || (data.fivePercentAction is string && data.fivePercentAction.size() <= 1000)) &&
+             (!('content' in data) || (data.content is string && data.content.size() <= 10000));
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+
+      match /journal/{entryId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidJournalEntry(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

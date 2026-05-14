@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Stores user's miracle question progress and state.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "miracleDescription": { "type": "string", "description": "Description of the miracle state" },
+        "currentScore": { "type": "number", "description": "Current scaling score (0-10)" },
+        "signsOfChange": { "type": "string", "description": "Signs of a +1 point change" },
+        "fivePercentAction": { "type": "string", "description": "The 5% action plan" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["uid", "miracleDescription", "currentScore"]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "A saved reflection or journal entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "miracleDescription": { "type": "string" },
+        "currentScore": { "type": "number" },
+        "signsOfChange": { "type": "string" },
+        "fivePercentAction": { "type": "string" },
+        "content": { "type": "string", "description": "Additional user reflections" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User-specific miracle question data"
+    },
+    "/users/{userId}/journal/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "User's private journal entries"
+    }
+  }
+}
