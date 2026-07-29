@@ -21,7 +21,7 @@ import {
   Languages
 } from 'lucide-react';
 import Markdown from 'react-markdown';
-import { getAiGuidance } from './services/geminiService';
+import { getAiGuidance } from "./services/aiGuidance";
 import { cn } from './lib/utils';
 import { useLanguage } from './i18n';
 import { 
