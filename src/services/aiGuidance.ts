@@ -41,5 +41,5 @@ export async function getAiGuidance(prompt: string, context: any, lang: Lang = "
 patch-1
 }
 
-}
- main
+
+ 
