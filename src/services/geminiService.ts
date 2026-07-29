@@ -1,19 +1,16 @@
-import { GoogleGenAI } from "@google/genai";
 import { translations, type Lang } from "../i18n";
 
 export async function getAiGuidance(prompt: string, context: any, lang: Lang = 'zh') {
   const t = translations[lang];
 
-  // Try to get key from multiple sources
-  const apiKey = process.env.GEMINI_API_KEY;
+  // 从 Vercel 的前端环境变量中读取 DeepSeek 密钥
+  // 注意：我们在 Vercel 配置的变量名必须叫 VITE_DEEPSEEK_API_KEY
+  const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
 
   if (!apiKey) {
-    console.error("GEMINI_API_KEY is missing.");
+    console.error("VITE_DEEPSEEK_API_KEY is missing.");
     throw new Error(t.aiKeyMissingError);
   }
-
-  const ai = new GoogleGenAI({ apiKey });
-  const model = "gemini-3-flash-preview";
 
   const systemInstruction = lang === 'en'
     ? `You are a warm, wise counseling assistant specializing in the "Miracle Question" and "5% Change" techniques from Solution-Focused Brief Therapy (SFBT).
@@ -39,7 +36,7 @@ ${JSON.stringify(context, null, 2)}
     : `你是一位温和、睿智的心理咨询助手，专门研究基于"焦点解决短期疗法 (SFBT)"的"奇迹提问"和"5%改变"技术。
 
 你的核心目标：
-当用户完成"奇迹提问"和"现状评估"后，基于用户当前分数与理想分数（10分）之间的差距，帮助用户生成 1-3 个微小的、具体的、可行的"5% 改变"行动。
+当用户完成"奇迹提问"后，基于用户当前分数与理想分数（10分）之间的差距，帮助用户生成 1-3 个微小的、具体的、可行的"5% 改变"行动。
 
 生成原则：
 1. **微小性**：行动必须小到用户几乎不可能失败。如果用户在这个问题上已经困扰很久，那么这个动作应该只有"抬起手指"那么重。
@@ -56,23 +53,39 @@ ${JSON.stringify(context, null, 2)}
 `;
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: [{ parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction,
-        temperature: 0.7,
+    // 替换为标准的 DeepSeek API 网络请求
+    const response = await fetch("https://deepseek.com", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
+      body: JSON.stringify({
+        model: "deepseek-chat", // DeepSeek 官方通用对话/推理模型
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7
+      })
     });
 
-    if (!response.text) {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiText = data.choices?.[0]?.message?.content;
+
+    if (!aiText) {
       throw new Error(t.aiNoContentError);
     }
 
-    return response.text;
+    return aiText;
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    if (error.message?.includes("API key not valid")) {
+    console.error("DeepSeek API Error:", error);
+    if (error.message?.includes("API key") || error.message?.includes("401")) {
       throw new Error(t.aiInvalidKeyError);
     }
     throw new Error(error.message || t.aiUnavailableError);
