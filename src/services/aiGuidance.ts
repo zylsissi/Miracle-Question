@@ -38,4 +38,8 @@ export async function getAiGuidance(prompt: string, context: any, lang: Lang = "
     console.error("getAiGuidance error:", error);
     throw new Error(error.message || t.aiUnavailableError);
   }
+patch-1
 }
+
+
+ 
